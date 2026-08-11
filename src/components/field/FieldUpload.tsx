@@ -6,23 +6,49 @@ import {
   Image as ImageIcon,
   X,
   Sparkles,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react"
+
+import {
+  diagnoseLeaf,
+  type DiagnosisResult,
+} from "../../services/diagnosisService"
 
 interface FieldUploadProps {
   onAnalyze: () => void
+  crop?: string
 }
 
-export default function FieldUpload({ onAnalyze }: FieldUploadProps) {
+export default function FieldUpload({
+  onAnalyze,
+  crop = "Tomato",
+}: FieldUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [image, setImage] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [diagnosis, setDiagnosis] =
+    useState<DiagnosisResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
   const handleFile = (file?: File) => {
-    if (!file || !file.type.startsWith("image/")) return
+    if (!file || !file.type.startsWith("image/")) {
+      setError("Please select a valid image file.")
+      return
+    }
+
+    setError(null)
+    setDiagnosis(null)
 
     const imageUrl = URL.createObjectURL(file)
+
     setImage(imageUrl)
+    setSelectedFile(file)
   }
 
   const handleInputChange = (
@@ -39,16 +65,76 @@ export default function FieldUpload({ onAnalyze }: FieldUploadProps) {
   }
 
   const removeImage = () => {
+    if (image) {
+      URL.revokeObjectURL(image)
+    }
+
     setImage(null)
+    setSelectedFile(null)
+    setDiagnosis(null)
+    setError(null)
 
     if (inputRef.current) {
       inputRef.current.value = ""
     }
   }
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result)
+        } else {
+          reject(new Error("Unable to read image"))
+        }
+      }
+
+      reader.onerror = () => {
+        reject(new Error("Unable to read image"))
+      }
+
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) {
+      setError("Please select an image before analyzing.")
+      return
+    }
+
+    try {
+      setIsAnalyzing(true)
+      setError(null)
+      setDiagnosis(null)
+
+      const base64Image = await fileToBase64(selectedFile)
+
+      const result = await diagnoseLeaf(
+        base64Image,
+        crop,
+      )
+
+      setDiagnosis(result)
+
+      onAnalyze()
+    } catch (err) {
+      console.error("Leaf diagnosis error:", err)
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to analyze the leaf image.",
+      )
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
   return (
     <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-xl md:p-8">
-
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
           <Sparkles size={16} />
@@ -137,7 +223,8 @@ export default function FieldUpload({ onAnalyze }: FieldUploadProps) {
 
             <button
               onClick={removeImage}
-              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80"
+              disabled={isAnalyzing}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X size={18} />
             </button>
@@ -150,17 +237,150 @@ export default function FieldUpload({ onAnalyze }: FieldUploadProps) {
               </p>
 
               <p className="mt-1 text-sm text-slate-400">
-                We'll combine visual symptoms with field conditions.
+                Crop: {crop}
               </p>
             </div>
 
             <button
-              onClick={onAnalyze}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-green-500 px-6 py-3 font-semibold text-white transition hover:bg-green-400"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-green-500 px-6 py-3 font-semibold text-white transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <Sparkles size={17} />
-              Analyze field
+              {isAnalyzing ? (
+                <>
+                  <Loader2
+                    size={17}
+                    className="animate-spin"
+                  />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={17} />
+                  Analyze field
+                </>
+              )}
             </button>
+          </div>
+        </motion.div>
+      )}
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700"
+        >
+          <AlertTriangle
+            size={20}
+            className="mt-0.5 shrink-0"
+          />
+
+          <div>
+            <p className="font-semibold">
+              Analysis failed
+            </p>
+
+            <p className="mt-1 text-sm">
+              {error}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {diagnosis && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 rounded-[1.5rem] border border-green-100 bg-green-50 p-6"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
+                <CheckCircle2 size={17} />
+                AI DIAGNOSIS
+              </div>
+
+              <h3 className="mt-2 text-2xl font-bold text-slate-900">
+                {diagnosis.disease}
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Crop: {diagnosis.crop}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white px-4 py-3 text-center shadow-sm">
+              <p className="text-xs font-medium text-slate-500">
+                Confidence
+              </p>
+
+              <p className="mt-1 text-xl font-bold text-green-700">
+                {diagnosis.confidence}%
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl bg-white p-4">
+              <p className="text-sm font-semibold text-slate-900">
+                Severity
+              </p>
+
+              <p className="mt-2 font-medium text-orange-600">
+                {diagnosis.severity}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-4">
+              <p className="text-sm font-semibold text-slate-900">
+                Crop
+              </p>
+
+              <p className="mt-2 font-medium text-green-700">
+                {diagnosis.crop}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-white p-5">
+            <h4 className="font-semibold text-slate-900">
+              Visible symptoms
+            </h4>
+
+            <ul className="mt-3 space-y-2">
+              {diagnosis.symptoms.map(
+                (symptom, index) => (
+                  <li
+                    key={index}
+                    className="flex gap-2 text-sm text-slate-600"
+                  >
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                    {symptom}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-white p-5">
+            <h4 className="font-semibold text-slate-900">
+              Recommended actions
+            </h4>
+
+            <ul className="mt-3 space-y-2">
+              {diagnosis.actions.map(
+                (action, index) => (
+                  <li
+                    key={index}
+                    className="flex gap-2 text-sm text-slate-600"
+                  >
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                    {action}
+                  </li>
+                ),
+              )}
+            </ul>
           </div>
         </motion.div>
       )}
