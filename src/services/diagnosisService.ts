@@ -18,7 +18,7 @@ export async function diagnoseLeaf(
   crop: string,
 ): Promise<DiagnosisResult> {
   const response = await fetch(
-    "http://localhost:5000/api/diagnose",
+    "https://krishi-shield-ai-backend.onrender.com/api/diagnose",
     {
       method: "POST",
 
