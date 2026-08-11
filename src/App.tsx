@@ -1,8 +1,14 @@
+import Navbar from "./components/layout/Navbar"
+import HeroSection from "./components/dashboard/HeroSection"
+
 function App() {
   return (
-    <main>
-      <h1>Krishi-Shield AI</h1>
-      <p>From field signals to the right agricultural action.</p>
+    <main className="min-h-screen">
+      <Navbar />
+
+      <div className="mx-auto max-w-7xl px-5 pb-10 lg:px-8">
+        <HeroSection />
+      </div>
     </main>
   )
 }
