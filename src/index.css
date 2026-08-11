@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
 
   color: #172018;
@@ -9,6 +14,8 @@
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -23,10 +30,31 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+
   background:
-    radial-gradient(circle at 10% 10%, rgba(134, 239, 172, 0.18), transparent 30%),
-    radial-gradient(circle at 90% 20%, rgba(253, 224, 71, 0.10), transparent 25%),
-    #f4f7f0;
+    radial-gradient(
+      circle at 8% 8%,
+      rgba(134, 239, 172, 0.18),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 92% 12%,
+      rgba(251, 207, 232, 0.13),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at 80% 85%,
+      rgba(253, 224, 71, 0.08),
+      transparent 25%
+    ),
+    linear-gradient(
+      135deg,
+      #f5f8f1 0%,
+      #f8faf5 45%,
+      #faf7f1 100%
+    );
+
+  overflow-x: hidden;
 }
 
 button,
@@ -40,10 +68,16 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 ::selection {
   background: #166534;
   color: white;
 }
+
+/* Soft glass surface */
 
 .glass {
   background: rgba(255, 255, 255, 0.62);
@@ -52,9 +86,56 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
+/* Dark glass surface */
+
 .glass-dark {
   background: rgba(20, 54, 30, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Smooth focus accessibility */
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(34, 197, 94, 0.25);
+  outline-offset: 2px;
+}
+
+/* Pleasant scrollbar */
+
+::-webkit-scrollbar {
+  width: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef3e9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b7cdb0;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8eaf83;
+}
+
+/* Prevent animation discomfort for users who prefer reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
